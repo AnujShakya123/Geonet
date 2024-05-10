@@ -1,0 +1,48 @@
+import requests
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+
+# Telegram Bot token
+TELEGRAM_BOT_TOKEN = "7057443610:AAEHTeVObKBn9Y-7suJpZLDWlMnVMPw4D9I"
+
+# Geospy API endpoint
+GEOSPY_API_URL = "https://api.geospy.ai/"
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /start command."""
+    await update.message.reply_text("Welcome to Geospy Bot! Type /get_location <IP_address> to get location details.")
+    return None  # Explicitly return None
+
+async def get_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /get_location command."""
+    try:
+        # Extract IP address from user's message
+        ip_address = context.args[0]
+
+        # Send request to Geospy API
+        response = requests.get(f"{GEOSPY_API_URL}?ip={ip_address}")
+        if response.status_code == 200:
+            data = response.json()
+            location_info = f"Country: {data['country']}\nCity: {data['city']}\nLatitude: {data['latitude']}\nLongitude: {data['longitude']}"
+            await update.message.reply_text(location_info)
+        else:
+            await update.message.reply_text("Failed to fetch location details.")
+    except IndexError:
+        await update.message.reply_text("Please provide an IP address.")
+    except Exception as e:
+        print(f"Error: {e}")
+    return None  # Explicitly return None
+
+
+def main():
+    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
+    # Commands
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler("get_location", get_location))
+
+    # Run bot
+    application.run_polling()
+
+if __name__ == '__main__':
+    main()
