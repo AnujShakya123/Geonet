@@ -1,47 +1,35 @@
-import requests
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# Telegram Bot token
-TELEGRAM_BOT_TOKEN = "7057443610:AAEHTeVObKBn9Y-7suJpZLDWlMnVMPw4D9I"
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text('Hello! I am your GeoSpy bot. Use /locate <latitude> <longitude> to get location info.')
 
-# Geospy API endpoint
-GEOSPY_API_URL = "https://api.geospy.ai/"
+async def get_location_info(latitude: float, longitude: float) -> str:
+    # Placeholder for actual location info retrieval logic
+    # This function is assumed to be async
+    return f"Location info for coordinates: ({latitude}, {longitude})"
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /start command."""
-    await update.message.reply_text("Welcome to Geospy Bot! Type /get_location <IP_address> to get location details.")
-    return None  # Explicitly return None
-
-async def get_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /get_location command."""
+async def locate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
-        # Extract IP address from user's message
-        ip_address = context.args[0]
-
-        # Send request to Geospy API
-        response = requests.get(f"{GEOSPY_API_URL}?ip={ip_address}")
-        if response.status_code == 200:
-            data = response.json()
-            location_info = f"Country: {data['country']}\nCity: {data['city']}\nLatitude: {data['latitude']}\nLongitude: {data['longitude']}"
-            await update.message.reply_text(location_info)
-        else:
-            await update.message.reply_text("Failed to fetch location details.")
-    except IndexError:
-        await update.message.reply_text("Please provide an IP address.")
+        latitude = float(context.args[0])
+        longitude = float(context.args[1])
+        location_info = await get_location_info(latitude, longitude)
+        await update.message.reply_text(location_info)
+    except (IndexError, ValueError):
+        await update.message.reply_text("Please provide both latitude and longitude in the format: /locate <latitude> <longitude>.")
     except Exception as e:
-        print(f"Error: {e}")
-    return None  # Explicitly return None
+        await update.message.reply_text(f"An error occurred: {str(e)}")
 
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    print(f"Exception while handling an update: {context.error}")
 
-def main():
-    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-
-    # Commands
+def main() -> None:
+    application = ApplicationBuilder().token('7057443610:AAEHTeVObKBn9Y-7suJpZLDWlMnVMPw4D9I').build()
+    
     application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler("get_location", get_location))
-
-    # Run bot
+    application.add_handler(CommandHandler('locate', locate))
+    application.add_error_handler(error_handler)  # Register error handler
+    
     application.run_polling()
 
 if __name__ == '__main__':
